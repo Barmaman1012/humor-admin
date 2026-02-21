@@ -1,4 +1,13 @@
 export type RowData = Record<string, unknown>;
+export type AdminColumnType =
+  | "text"
+  | "number"
+  | "boolean"
+  | "date"
+  | "json"
+  | "image"
+  | "url"
+  | "long-text";
 
 export function pickFirstKey(
   row: RowData | null | undefined,
@@ -50,4 +59,79 @@ export function formatDateValue(value: unknown): string {
 export function truncateText(value: string, max = 160): string {
   if (value.length <= max) return value;
   return `${value.slice(0, max)}…`;
+}
+
+export function formatColumnLabel(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^./, (char) => char.toUpperCase());
+}
+
+export function guessColumnType(key: string): AdminColumnType {
+  const normalized = key.toLowerCase();
+  if (
+    normalized === "url" ||
+    normalized.endsWith("_url") ||
+    normalized.includes("cdn_url") ||
+    normalized.includes("uri")
+  ) {
+    if (normalized.includes("image") || normalized === "url") {
+      return "image";
+    }
+    return "url";
+  }
+  if (
+    normalized.includes("created") ||
+    normalized.endsWith("_at") ||
+    normalized.includes("date")
+  ) {
+    return "date";
+  }
+  if (
+    normalized.includes("caption") ||
+    normalized.includes("text") ||
+    normalized.includes("prompt") ||
+    normalized.includes("body") ||
+    normalized.includes("content")
+  ) {
+    return "long-text";
+  }
+  if (normalized.includes("count") || normalized.includes("total")) {
+    return "number";
+  }
+  if (
+    normalized.startsWith("is_") ||
+    normalized.startsWith("has_") ||
+    normalized.endsWith("_flag")
+  ) {
+    return "boolean";
+  }
+  return "text";
+}
+
+export function guessFormFieldType(
+  key: string,
+  columnType?: AdminColumnType
+): "text" | "number" | "boolean" | "json" | "textarea" | "url" {
+  const type = columnType ?? guessColumnType(key);
+  if (type === "long-text") return "textarea";
+  if (type === "image" || type === "url") return "url";
+  if (type === "number") return "number";
+  if (type === "boolean") return "boolean";
+  if (type === "json") return "json";
+  return "text";
+}
+
+export function isEditableColumn(key: string): boolean {
+  const normalized = key.toLowerCase();
+  return ![
+    "id",
+    "created_at",
+    "updated_at",
+    "created_on",
+    "updated_on",
+  ].includes(normalized);
 }

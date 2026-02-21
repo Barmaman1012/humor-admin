@@ -7,8 +7,24 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/stats", label: "Stats" },
   { href: "/admin/admins", label: "Admins" },
+  { href: "/admin/users", label: "Users" },
   { href: "/admin/images", label: "Images" },
   { href: "/admin/captions", label: "Captions" },
+  { href: "/admin/caption-requests", label: "Caption Requests" },
+  { href: "/admin/humor-flavors", label: "Humor Flavors" },
+  { href: "/admin/humor-flavor-steps", label: "Humor Flavor Steps" },
+  { href: "/admin/humor-mix", label: "Humor Mix" },
+  { href: "/admin/caption-examples", label: "Caption Examples" },
+  { href: "/admin/terms", label: "Terms" },
+  { href: "/admin/llm-providers", label: "LLM Providers" },
+  { href: "/admin/llm-models", label: "LLM Models" },
+  { href: "/admin/llm-prompt-chains", label: "LLM Prompt Chains" },
+  { href: "/admin/llm-responses", label: "LLM Responses" },
+  { href: "/admin/allowed-signup-domains", label: "Allowed Signup Domains" },
+  {
+    href: "/admin/whitelist-email-addresses",
+    label: "Whitelist Email Addresses",
+  },
 ];
 
 export default async function AdminLayout({
