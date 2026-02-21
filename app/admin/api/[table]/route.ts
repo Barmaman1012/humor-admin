@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerRouteClient } from "@/lib/supabase/server-route";
 
 const TABLE_CONFIG: Record<
@@ -40,10 +40,10 @@ async function requireSuperadmin() {
 }
 
 export async function GET(
-  _request: Request,
-  { params }: { params: { table: string } }
+  _request: NextRequest,
+  context: { params: Promise<{ table: string }> }
 ) {
-  const table = params.table;
+  const { table } = await context.params;
   if (!TABLE_WHITELIST.has(table)) {
     return NextResponse.json({ error: "Table not allowed." }, { status: 404 });
   }
@@ -59,10 +59,10 @@ export async function GET(
 }
 
 export async function POST(
-  request: Request,
-  { params }: { params: { table: string } }
+  request: NextRequest,
+  context: { params: Promise<{ table: string }> }
 ) {
-  const table = params.table;
+  const { table } = await context.params;
   const config = TABLE_CONFIG[table];
   if (!config) {
     return NextResponse.json({ error: "Table not allowed." }, { status: 404 });

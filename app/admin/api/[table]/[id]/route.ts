@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerRouteClient } from "@/lib/supabase/server-route";
 
 const TABLE_CONFIG: Record<
@@ -63,10 +63,10 @@ function sanitizeUpdate(table: string, payload: Record<string, unknown>) {
 }
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { table: string; id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ table: string; id: string }> }
 ) {
-  const table = params.table;
+  const { table, id } = await context.params;
   const config = TABLE_CONFIG[table];
   if (!config) {
     return NextResponse.json({ error: "Table not allowed." }, { status: 404 });
@@ -75,7 +75,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Update not allowed." }, { status: 405 });
   }
 
-  const id = params.id;
   if (!id || !ID_PATTERN.test(id)) {
     return NextResponse.json({ error: "Invalid id." }, { status: 400 });
   }
@@ -108,10 +107,10 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
-  { params }: { params: { table: string; id: string } }
+  _request: NextRequest,
+  context: { params: Promise<{ table: string; id: string }> }
 ) {
-  const table = params.table;
+  const { table, id } = await context.params;
   const config = TABLE_CONFIG[table];
   if (!config) {
     return NextResponse.json({ error: "Table not allowed." }, { status: 404 });
@@ -120,7 +119,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Delete not allowed." }, { status: 405 });
   }
 
-  const id = params.id;
   if (!id || !ID_PATTERN.test(id)) {
     return NextResponse.json({ error: "Invalid id." }, { status: 400 });
   }
