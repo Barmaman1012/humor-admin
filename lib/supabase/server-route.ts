@@ -1,17 +1,21 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import type { NextRequest, NextResponse } from "next/server";
 import { getSupabaseEnv } from "./env";
 
-export function createSupabaseServerRouteClient() {
+export function createSupabaseRouteClient(
+  request: NextRequest,
+  response: NextResponse
+) {
   const { url, anonKey } = getSupabaseEnv();
-  const cookieStore = cookies();
 
   return createServerClient(url, anonKey, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll();
+      getAll: () => request.cookies.getAll(),
+      setAll: (cookiesToSet) => {
+        for (const { name, value, options } of cookiesToSet) {
+          response.cookies.set(name, value, options);
+        }
       },
-      setAll() {},
     },
   });
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerRouteClient } from "@/lib/supabase/server-route";
+import { createSupabaseRouteClient } from "@/lib/supabase/server-route";
 
 const TABLE_CONFIG: Record<
   string,
@@ -27,13 +27,22 @@ const TABLE_CONFIG: Record<
 
 const ID_PATTERN = /^[A-Za-z0-9-_]+$/;
 
-async function requireSuperadmin() {
-  const supabase = createSupabaseServerRouteClient();
+function applyCookies(from: NextResponse, to: NextResponse) {
+  for (const cookie of from.cookies.getAll()) {
+    to.cookies.set(cookie);
+  }
+  return to;
+}
+
+async function requireSuperadmin(request: NextRequest, response: NextResponse) {
+  const supabase = createSupabaseRouteClient(request, response);
   const { data: userData, error: userError } = await supabase.auth.getUser();
   const user = userData.user;
 
   if (userError || !user) {
-    return { response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }) };
+    return {
+      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+    };
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -43,7 +52,9 @@ async function requireSuperadmin() {
     .single();
 
   if (profileError || !profile?.is_superadmin) {
-    return { response: NextResponse.json({ error: "Forbidden." }, { status: 403 }) };
+    return {
+      response: NextResponse.json({ error: "Forbidden." }, { status: 403 }),
+    };
   }
 
   return { supabase };
@@ -66,6 +77,7 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ table: string; id: string }> }
 ) {
+  const response = NextResponse.next();
   const { table, id } = await context.params;
   const config = TABLE_CONFIG[table];
   if (!config) {
@@ -79,7 +91,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid id." }, { status: 400 });
   }
 
-  const auth = await requireSuperadmin();
+  const auth = await requireSuperadmin(request, response);
   if ("response" in auth) return auth.response;
 
   const payload = await request.json().catch(() => null);
@@ -100,16 +112,20 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return applyCookies(
+      response,
+      NextResponse.json({ error: error.message }, { status: 400 })
+    );
   }
 
-  return NextResponse.json({ data });
+  return applyCookies(response, NextResponse.json({ data }));
 }
 
 export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ table: string; id: string }> }
 ) {
+  const response = NextResponse.next();
   const { table, id } = await context.params;
   const config = TABLE_CONFIG[table];
   if (!config) {
@@ -123,13 +139,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid id." }, { status: 400 });
   }
 
-  const auth = await requireSuperadmin();
+  const auth = await requireSuperadmin(_request, response);
   if ("response" in auth) return auth.response;
 
   const { error } = await auth.supabase.from(table).delete().eq("id", id);
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return applyCookies(
+      response,
+      NextResponse.json({ error: error.message }, { status: 400 })
+    );
   }
 
-  return NextResponse.json({ success: true });
+  return applyCookies(response, NextResponse.json({ success: true }));
 }

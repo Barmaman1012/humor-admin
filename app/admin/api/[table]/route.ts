@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerRouteClient } from "@/lib/supabase/server-route";
+import { createSupabaseRouteClient } from "@/lib/supabase/server-route";
 
 const TABLE_CONFIG: Record<
   string,
@@ -17,13 +17,22 @@ const TABLE_CONFIG: Record<
 
 const TABLE_WHITELIST = new Set(Object.keys(TABLE_CONFIG));
 
-async function requireSuperadmin() {
-  const supabase = createSupabaseServerRouteClient();
+function applyCookies(from: NextResponse, to: NextResponse) {
+  for (const cookie of from.cookies.getAll()) {
+    to.cookies.set(cookie);
+  }
+  return to;
+}
+
+async function requireSuperadmin(request: NextRequest, response: NextResponse) {
+  const supabase = createSupabaseRouteClient(request, response);
   const { data: userData, error: userError } = await supabase.auth.getUser();
   const user = userData.user;
 
   if (userError || !user) {
-    return { response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }) };
+    return {
+      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+    };
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -33,35 +42,42 @@ async function requireSuperadmin() {
     .single();
 
   if (profileError || !profile?.is_superadmin) {
-    return { response: NextResponse.json({ error: "Forbidden." }, { status: 403 }) };
+    return {
+      response: NextResponse.json({ error: "Forbidden." }, { status: 403 }),
+    };
   }
 
   return { supabase };
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ table: string }> }
 ) {
+  const response = NextResponse.next();
   const { table } = await context.params;
   if (!TABLE_WHITELIST.has(table)) {
     return NextResponse.json({ error: "Table not allowed." }, { status: 404 });
   }
 
-  const auth = await requireSuperadmin();
+  const auth = await requireSuperadmin(request, response);
   if ("response" in auth) return auth.response;
 
   const { data, error } = await auth.supabase.from(table).select("*").limit(200);
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return applyCookies(
+      response,
+      NextResponse.json({ error: error.message }, { status: 400 })
+    );
   }
-  return NextResponse.json({ data });
+  return applyCookies(response, NextResponse.json({ data }));
 }
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ table: string }> }
 ) {
+  const response = NextResponse.next();
   const { table } = await context.params;
   const config = TABLE_CONFIG[table];
   if (!config) {
@@ -71,7 +87,7 @@ export async function POST(
     return NextResponse.json({ error: "Create not allowed." }, { status: 405 });
   }
 
-  const auth = await requireSuperadmin();
+  const auth = await requireSuperadmin(request, response);
   if ("response" in auth) return auth.response;
 
   const payload = await request.json().catch(() => null);
@@ -85,8 +101,11 @@ export async function POST(
     .select("*");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return applyCookies(
+      response,
+      NextResponse.json({ error: error.message }, { status: 400 })
+    );
   }
 
-  return NextResponse.json({ data });
+  return applyCookies(response, NextResponse.json({ data }));
 }
