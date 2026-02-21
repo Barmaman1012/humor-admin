@@ -4,7 +4,7 @@ import {
   pickFirstKey,
   type RowData,
 } from "@/lib/admin/table-helpers";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
 
 const URL_CANDIDATES = ["url", "cdn_url", "image_url", "path"];
 const CREATED_CANDIDATES = [
@@ -21,7 +21,7 @@ const USER_CANDIDATES = [
 ];
 
 export default async function AdminImagesPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerComponentClient();
 
   const { data, error } = await supabase.from("images").select("*").limit(50);
   const rows = (data ?? []) as RowData[];

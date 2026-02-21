@@ -1,6 +1,6 @@
 import { CaptionsTableClient } from "@/components/CaptionsTableClient";
 import { pickFirstKey, type RowData } from "@/lib/admin/table-helpers";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
 
 const TEXT_CANDIDATES = [
   "caption",
@@ -23,7 +23,7 @@ const CREATED_CANDIDATES = [
 ];
 
 export default async function AdminCaptionsPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerComponentClient();
 
   const { data, error } = await supabase.from("captions").select("*").limit(100);
   const rows = (data ?? []) as RowData[];

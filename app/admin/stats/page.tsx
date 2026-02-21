@@ -4,7 +4,7 @@ import {
   pickFirstKey,
   type RowData,
 } from "@/lib/admin/table-helpers";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
 
 const CREATED_CANDIDATES = [
   "created_at",
@@ -27,7 +27,7 @@ type CountResult = {
 };
 
 export default async function AdminStatsPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerComponentClient();
 
   const getCount = async (table: string, label: string): Promise<CountResult> => {
     const { count, error } = await supabase
@@ -65,13 +65,28 @@ export default async function AdminStatsPage() {
         .limit(10)
     : await supabase.from("images").select("*").limit(10);
 
-  const { data: topUsers, error: topUsersError } = userKey
+  const { data: topUserImages, error: topUsersError } = userKey
     ? await supabase
         .from("images")
-        .select(`${userKey}, count:count()`)
-        .order("count", { ascending: false })
-        .limit(5)
+        .select(userKey)
+        .limit(1000)
     : { data: null, error: null };
+
+  const topUsers = userKey
+    ? (() => {
+        const counts = new Map<string, number>();
+        for (const row of (topUserImages ?? []) as unknown as RowData[]) {
+          const value = row[userKey];
+          if (value === null || value === undefined) continue;
+          const key = String(value);
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+        return Array.from(counts.entries())
+          .map(([key, count]) => ({ key, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+      })()
+    : [];
 
   return (
     <div className="space-y-8">
@@ -183,17 +198,17 @@ export default async function AdminStatsPage() {
               <div className="text-sm text-rose-600">
                 Error loading top users: {topUsersError.message}
               </div>
-            ) : (topUsers ?? []).length === 0 ? (
+            ) : topUsers.length === 0 ? (
               <div className="text-sm text-slate-500">No data available.</div>
             ) : (
               <ul className="space-y-2">
-                {(topUsers ?? []).map((row: RowData, index: number) => (
+                {topUsers.map((row, index) => (
                   <li
-                    key={String(row[userKey] ?? index)}
+                    key={String(row.key ?? index)}
                     className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"
                   >
                     <span className="text-slate-700">
-                      {formatValue(row[userKey])}
+                      {formatValue(row.key)}
                     </span>
                     <span className="font-semibold text-slate-900">
                       {formatValue(row.count)}

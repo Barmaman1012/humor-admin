@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminSignOutButton } from "@/components/AdminSignOutButton";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard" },
@@ -16,7 +16,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerComponentClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
   const user = userData.user;
 

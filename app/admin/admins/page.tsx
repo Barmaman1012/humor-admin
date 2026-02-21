@@ -4,10 +4,10 @@ import {
   formatValue,
   type RowData,
 } from "@/lib/admin/table-helpers";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
 
 export default async function AdminsPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerComponentClient();
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
 
