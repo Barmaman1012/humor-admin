@@ -20,13 +20,20 @@ export function AdminImagesClient({ rows }: Props) {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [createdRowId, setCreatedRowId] = useState<string | number | null>(null);
 
   const columns = useMemo(
     () => [
-      { key: "url", label: "Image", type: "image" as const },
+      { key: "url", label: "Thumbnail", type: "image" as const },
       { key: "id", label: "ID" },
-      { key: "created_at", label: "Created", type: "date" as const },
-      { key: "user_id", label: formatColumnLabel("user_id") },
+      {
+        key: "created_datetime_utc",
+        label: formatColumnLabel("created_datetime_utc"),
+        type: "date" as const,
+      },
+      { key: "url", label: "URL" },
+      { key: "profile_id", label: formatColumnLabel("profile_id") },
     ],
     []
   );
@@ -37,6 +44,15 @@ export function AdminImagesClient({ rows }: Props) {
     const token = data.session?.access_token;
     if (!token) throw new Error("Unable to load access token.");
     return token;
+  };
+
+  const extractErrorMessage = (payload: unknown, fallback: string) => {
+    if (typeof payload === "string") return payload;
+    if (!payload || typeof payload !== "object") return fallback;
+    const message =
+      (payload as { error?: string; message?: string }).error ??
+      (payload as { error?: string; message?: string }).message;
+    return message ?? fallback;
   };
 
   const uploadFileToPresignedUrl = async (url: string, fileToUpload: File) => {
@@ -69,13 +85,24 @@ export function AdminImagesClient({ rows }: Props) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(payload?.error ?? "Failed to create image row.");
+      throw new Error(
+        extractErrorMessage(payload, "Failed to create image row.")
+      );
     }
+    const created = Array.isArray(payload?.data)
+      ? payload.data[0]
+      : payload?.data;
+    if (!created?.id) {
+      throw new Error("Image row created but id was missing from response.");
+    }
+    return created;
   };
 
   const handleUpload = async () => {
     if (!file) return;
     setError(null);
+    setUploadedUrl(null);
+    setCreatedRowId(null);
     setStatus("Requesting upload URL...");
     setIsUploading(true);
     setUploadProgress(0);
@@ -97,7 +124,7 @@ export function AdminImagesClient({ rows }: Props) {
       const presignPayload = await presignResponse.json().catch(() => ({}));
       if (!presignResponse.ok) {
         throw new Error(
-          presignPayload?.error ?? "Failed to get presigned URL."
+          extractErrorMessage(presignPayload, "Failed to get presigned URL.")
         );
       }
 
@@ -121,11 +148,15 @@ export function AdminImagesClient({ rows }: Props) {
       });
       const pipelinePayload = await pipelineResponse.json().catch(() => ({}));
       if (!pipelineResponse.ok) {
-        throw new Error(pipelinePayload?.error ?? "Pipeline registration failed.");
+        throw new Error(
+          extractErrorMessage(pipelinePayload, "Pipeline registration failed.")
+        );
       }
 
       setStatus("Saving image record...");
-      await createImageRow(cdnUrl);
+      const created = await createImageRow(cdnUrl);
+      setUploadedUrl(cdnUrl);
+      setCreatedRowId(created.id);
 
       setStatus("Upload complete.");
       setFile(null);
@@ -141,6 +172,8 @@ export function AdminImagesClient({ rows }: Props) {
   const handleManualUrl = async () => {
     if (!manualUrl.trim()) return;
     setError(null);
+    setUploadedUrl(null);
+    setCreatedRowId(null);
     setStatus("Registering URL...");
     setIsUploading(true);
     try {
@@ -155,11 +188,15 @@ export function AdminImagesClient({ rows }: Props) {
       });
       const pipelinePayload = await pipelineResponse.json().catch(() => ({}));
       if (!pipelineResponse.ok) {
-        throw new Error(pipelinePayload?.error ?? "Pipeline registration failed.");
+        throw new Error(
+          extractErrorMessage(pipelinePayload, "Pipeline registration failed.")
+        );
       }
 
       setStatus("Saving image record...");
-      await createImageRow(manualUrl.trim());
+      const created = await createImageRow(manualUrl.trim());
+      setUploadedUrl(manualUrl.trim());
+      setCreatedRowId(created.id);
       setStatus("Image saved.");
       setManualUrl("");
       router.refresh();
@@ -240,6 +277,27 @@ export function AdminImagesClient({ rows }: Props) {
         {status && !isUploading && !error ? (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
             {status}
+          </div>
+        ) : null}
+        {uploadedUrl ? (
+          <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <div>
+              <span className="font-semibold">Uploaded URL:</span>{" "}
+              <span className="break-all">{uploadedUrl}</span>
+            </div>
+            {createdRowId ? (
+              <div>
+                <span className="font-semibold">DB row created:</span>{" "}
+                {createdRowId}
+              </div>
+            ) : null}
+            <div className="pt-2">
+              <img
+                src={uploadedUrl}
+                alt="Uploaded preview"
+                className="h-20 w-20 rounded-lg object-cover"
+              />
+            </div>
           </div>
         ) : null}
       </section>

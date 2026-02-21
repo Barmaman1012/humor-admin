@@ -5,7 +5,10 @@ import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
 export default async function AdminImagesPage() {
   const supabase = await createSupabaseServerComponentClient();
 
-  const { data, error } = await supabase.from("images").select("*").limit(50);
+  const { data, error } = await supabase
+    .from("images")
+    .select("*")
+    .order("created_datetime_utc", { ascending: false });
   const rows = (data ?? []) as RowData[];
 
   return (
