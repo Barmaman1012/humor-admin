@@ -276,11 +276,13 @@ export function buildCaptionLengthInsights(
 ): LengthInsight[] {
   if (!fields.scoreKey || !fields.textKey) return [];
 
+  type LengthBucketKey = "short" | "medium" | "long";
+
   const buckets = {
     short: { scores: [] as number[], words: [] as number[] },
     medium: { scores: [] as number[], words: [] as number[] },
     long: { scores: [] as number[], words: [] as number[] },
-  };
+  } satisfies Record<LengthBucketKey, { scores: number[]; words: number[] }>;
 
   for (const row of captions) {
     const score = getNumericValue(row, fields.scoreKey);
@@ -288,28 +290,37 @@ export function buildCaptionLengthInsights(
     if (score === null || !text) continue;
 
     const words = text.trim().split(/\s+/).filter(Boolean).length;
-    const bucket =
+    const bucket: LengthBucketKey =
       words < 8 ? "short" : words < 16 ? "medium" : "long";
 
     buckets[bucket].scores.push(score);
     buckets[bucket].words.push(words);
   }
 
-  return [
+  const bucketDefinitions = [
     { key: "short", label: "Short" },
     { key: "medium", label: "Medium" },
     { key: "long", label: "Long" },
-  ]
-    .map(({ key, label }) => {
+  ] as const;
+
+  const insights: LengthInsight[] = [];
+
+  for (const { key, label } of bucketDefinitions) {
       const scores = buckets[key].scores;
       const words = buckets[key].words;
-      if (scores.length === 0) return null;
-      return {
+      if (scores.length === 0) continue;
+
+      insights.push({
         label,
-        averageScore: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+        averageScore:
+          scores.reduce((sum: number, score: number) => sum + score, 0) /
+          scores.length,
         captionCount: scores.length,
-        averageWords: words.reduce((sum, count) => sum + count, 0) / words.length,
-      };
-    })
-    .filter((value): value is LengthInsight => value !== null);
+        averageWords:
+          words.reduce((sum: number, count: number) => sum + count, 0) /
+          words.length,
+      });
+  }
+
+  return insights;
 }
