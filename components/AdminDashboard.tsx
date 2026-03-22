@@ -265,6 +265,7 @@ export async function AdminDashboard() {
           <h2 className="text-lg font-semibold text-slate-900">Quick links</h2>
           <div className="mt-4 grid gap-3">
             {[
+              { href: "/admin/stats", label: "Stats" },
               { href: "/admin/profiles", label: "Profiles" },
               { href: "/admin/images", label: "Images" },
               { href: "/admin/captions", label: "Captions" },
