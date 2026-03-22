@@ -26,7 +26,6 @@ export default async function AdminsPage() {
     "email",
     "is_superadmin",
     "is_in_study",
-    "is_matrix_admin",
   ];
   const columns = buildColumnOrder(rows, preferredColumns);
 

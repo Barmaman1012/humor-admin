@@ -5,7 +5,7 @@ import { getSupabaseEnv } from "./lib/supabase/env";
 export async function proxy(request: NextRequest) {
   const { url, anonKey } = getSupabaseEnv();
 
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },

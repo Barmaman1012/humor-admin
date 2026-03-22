@@ -1,53 +1,5 @@
-import { AdminDataTable } from "@/components/AdminDataTable";
-import {
-  buildColumnOrder,
-  formatColumnLabel,
-  guessColumnType,
-  type RowData,
-} from "@/lib/admin/table-helpers";
-import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-const PREFERRED_COLUMNS = [
-  "id",
-  "email",
-  "display_name",
-  "is_superadmin",
-  "is_matrix_admin",
-  "created_at",
-];
-
-export default async function AdminUsersPage() {
-  const supabase = await createSupabaseServerComponentClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .limit(200);
-
-  const rows = (data ?? []) as RowData[];
-  const columnKeys = buildColumnOrder(rows, PREFERRED_COLUMNS);
-  const displayKeys = columnKeys.length ? columnKeys : PREFERRED_COLUMNS;
-  const columns = displayKeys.map((key) => ({
-    key,
-    label: formatColumnLabel(key),
-    type: guessColumnType(key),
-  }));
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Users</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Browse profiles and account metadata.
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-        {error
-          ? `Error loading users: ${error.message}`
-          : `${rows.length} user${rows.length === 1 ? "" : "s"}`}
-      </div>
-
-      <AdminDataTable rows={rows} columns={columns} />
-    </div>
-  );
+export default function AdminUsersPage() {
+  redirect("/admin/profiles");
 }

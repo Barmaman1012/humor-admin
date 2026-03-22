@@ -3,16 +3,29 @@ import {
   buildColumnOrder,
   formatColumnLabel,
   guessColumnType,
+  pickFirstKey,
   type RowData,
 } from "@/lib/admin/table-helpers";
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
 
 const PREFERRED_COLUMNS = ["id", "caption", "image_id", "created_at", "user_id"];
+const CREATED_CANDIDATES = [
+  "created_at",
+  "created_datetime_utc",
+  "created_time",
+  "inserted_at",
+];
 
 export default async function AdminCaptionsPage() {
   const supabase = await createSupabaseServerComponentClient();
+  const { data: sampleRows } = await supabase.from("captions").select("*").limit(1);
+  const sample = (sampleRows?.[0] ?? null) as RowData | null;
+  const createdKey = pickFirstKey(sample, CREATED_CANDIDATES);
 
-  const { data, error } = await supabase.from("captions").select("*").limit(100);
+  const query = supabase.from("captions").select("*");
+  const { data, error } = createdKey
+    ? await query.order(createdKey, { ascending: false }).limit(200)
+    : await query.limit(200);
   const rows = (data ?? []) as RowData[];
   const columnKeys = buildColumnOrder(rows, PREFERRED_COLUMNS);
   const displayKeys = columnKeys.length ? columnKeys : PREFERRED_COLUMNS;

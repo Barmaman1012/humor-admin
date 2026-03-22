@@ -5,9 +5,8 @@ import { createSupabaseServerComponentClient } from "@/lib/supabase/server";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard" },
-  { href: "/admin/stats", label: "Stats" },
   { href: "/admin/admins", label: "Admins" },
-  { href: "/admin/users", label: "Users" },
+  { href: "/admin/profiles", label: "Profiles" },
   { href: "/admin/images", label: "Images" },
   { href: "/admin/captions", label: "Captions" },
   { href: "/admin/caption-requests", label: "Caption Requests" },
