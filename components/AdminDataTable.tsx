@@ -157,6 +157,9 @@ export function AdminDataTable({
         continue;
       }
       const value = typeof rawValue === "string" ? rawValue.trim() : "";
+      if (field.required && !value) {
+        return { error: `${field.label ?? field.key} is required.` };
+      }
       if (!value) {
         values[field.key] = null;
         continue;
@@ -398,9 +401,9 @@ export function AdminDataTable({
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              {columns.map((column) => (
-                <th key={column.key} className="px-4 py-3">
+              <tr>
+              {columns.map((column, columnIndex) => (
+                <th key={`${column.key}-${columnIndex}`} className="px-4 py-3">
                   {column.label ?? column.key}
                 </th>
               ))}
@@ -422,8 +425,11 @@ export function AdminDataTable({
             ) : (
               filteredRows.map((row, rowIndex) => (
                 <tr key={String(row[idKey] ?? rowIndex)} className="align-top">
-                  {columns.map((column) => (
-                    <td key={column.key} className="px-4 py-3 text-slate-700">
+                  {columns.map((column, columnIndex) => (
+                    <td
+                      key={`${column.key}-${columnIndex}`}
+                      className="px-4 py-3 text-slate-700"
+                    >
                       {renderCell(row, column, rowIndex)}
                     </td>
                   ))}
